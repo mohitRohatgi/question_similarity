@@ -1,0 +1,4 @@
+data/*
+.idea/*
+*.pyc
+saved_models/tf_model_graphs/*
