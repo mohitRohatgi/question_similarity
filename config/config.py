@@ -1,7 +1,7 @@
 class Config:
     label_seq_length = 10
     text_seq_length = 60
-    batch_size = 32
+    batch_size = 128
     n_epoch = 30
     train_valid_split = 0.8
     evaluate_every = 100

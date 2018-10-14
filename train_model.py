@@ -30,6 +30,8 @@ def train():
             model = SimilarQuestionClassifier()
             model.initialise(sess, embedding_matrix)
             for i in range(config.n_epoch):
+                avg_loss = 0.0
+                avg_accuracy = 0.0
                 for j in range(num_batches_per_epoch):
                     train_batch, valid_batch = batch_iterator.next()
                     noisy_sents_train, correct_sents_train, incorrect_sents_train, labels_train, incorrect_labels_train\
@@ -38,6 +40,8 @@ def train():
                         = valid_batch
                     loss, accuracy = model.run_batch(sess, noisy_sents_train, correct_sents_train,
                                                      incorrect_sents_train, labels_train, incorrect_labels_train)
+                    avg_loss += loss
+                    avg_accuracy += accuracy
 
                     print("epoch = ", i, " batch_num = ", j, " loss = ", loss, " accuracy = ", accuracy)
 
@@ -45,7 +49,9 @@ def train():
                         loss, accuracy = model.run_batch(sess, noisy_sents_valid, correct_sents_valid,
                                                          labels_valid, incorrect_sents_valid,
                                                          incorrect_labels_valid)
-                        print("epoch = ", i, " batch_num = ", j, " loss = ", loss, " accuracy = ", accuracy)
+                        print("epoch = ", i, " batch_num = ", j, " valid_loss = ", loss, " valid_accuracy = ", accuracy)
+                print("epoch = ", i, " avg_loss = ", avg_loss / num_batches_per_epoch,
+                      " avg_accuracy = ", avg_accuracy / num_batches_per_epoch)
 
 
 if __name__ == '__main__':
