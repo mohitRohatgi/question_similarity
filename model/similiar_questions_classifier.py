@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 from config.config import Config
 
@@ -83,25 +84,29 @@ class SimilarQuestionClassifier:
 
     def add_question_similarity_model(self):
         with tf.variable_scope("question_similarity", reuse=tf.AUTO_REUSE):
-            noisy_question_final_state = self.get_score_from_question_encoder('noisy_question', self.noisy_sent_vector,
-                                                                              self.ner_output)
+            self.noisy_question_final_state = self.get_score_from_question_encoder('noisy_question',
+                                                                                   self.noisy_sent_vector,
+                                                                                   self.ner_output)
             correct_label = tf.cast(self.label, dtype=tf.float32)
-            correct_question_final_state = self.get_score_from_question_encoder('correct_question',
-                                                                                self.correct_sent_vector,
-                                                                                correct_label)
+            self.correct_question_final_state = self.get_score_from_question_encoder('correct_question',
+                                                                                     self.correct_sent_vector,
+                                                                                     correct_label)
             incorrect_label = tf.cast(self.incorrect_label, dtype=tf.float32)
-            incorrect_question_final_state = self.get_score_from_question_encoder('correct_question',
-                                                                                  self.incorrect_sent_vector,
-                                                                                  incorrect_label)
+            self.incorrect_question_final_state = self.get_score_from_question_encoder('correct_question',
+                                                                                       self.incorrect_sent_vector,
+                                                                                       incorrect_label)
             # Taking dot product of two vector -> range=(-1, 1)
-            self.correct_question_score = tf.reduce_sum(noisy_question_final_state * correct_question_final_state,
+            self.correct_question_score = tf.reduce_sum(self.noisy_question_final_state *
+                                                        self.correct_question_final_state,
                                                         axis=-1)
-            self.correct_question_score /= tf.sqrt(tf.reduce_sum(tf.square(noisy_question_final_state), axis=-1))
-            self.correct_question_score /= tf.sqrt(tf.reduce_sum(tf.square(correct_question_final_state), axis=-1))
-            self.incorrect_question_score = tf.reduce_sum(noisy_question_final_state * incorrect_question_final_state,
+            self.correct_question_score /= tf.sqrt(tf.reduce_sum(tf.square(self.noisy_question_final_state), axis=-1))
+            self.correct_question_score /= tf.sqrt(tf.reduce_sum(tf.square(self.correct_question_final_state), axis=-1))
+            self.incorrect_question_score = tf.reduce_sum(self.noisy_question_final_state *
+                                                          self.incorrect_question_final_state,
                                                           axis=-1)
-            self.incorrect_question_score /= tf.sqrt(tf.reduce_sum(tf.square(noisy_question_final_state), axis=-1))
-            self.incorrect_question_score /= tf.sqrt(tf.reduce_sum(tf.square(incorrect_question_final_state), axis=-1))
+            self.incorrect_question_score /= tf.sqrt(tf.reduce_sum(tf.square(self.noisy_question_final_state), axis=-1))
+            self.incorrect_question_score /= tf.sqrt(tf.reduce_sum(tf.square(self.incorrect_question_final_state),
+                                                                   axis=-1))
             # transforming score to have range = (0, 1)
             self.correct_question_score = (self.correct_question_score + 1.0) / 2.0
             self.incorrect_question_score = (self.incorrect_question_score + 1.0) / 2.0
@@ -123,8 +128,35 @@ class SimilarQuestionClassifier:
         self.loss = tf.reduce_mean(-tf.log(self.correct_question_score + delta) +
                                    tf.log(self.incorrect_question_score + delta))
 
+    # noisy_final_states = (batch_size, num_hidden)
+    # correct_final_state = (batch_size, num_hidden)
+    def get_accuracy(self, noisy_final_states, correct_final_states):
+        correct_predictions = np.zeros(len(noisy_final_states))
+        for index, noisy_final_state in enumerate(noisy_final_states):
+            dot_prod = np.sum(noisy_final_state * noisy_final_states, axis=-1)
+            dot_prod /= np.sqrt(np.sum(np.square(correct_final_states), axis=-1))
+            dot_prod /= np.sqrt(np.sum(np.square(noisy_final_state)))
+            if index == np.argmax(dot_prod):
+                correct_predictions[index] = 1
+        return correct_predictions
+
     def add_train_op(self):
         with tf.variable_scope("training"):
             grads, variables = zip(*self.optimizer.compute_gradients(self.loss))
             grads, _ = tf.clip_by_global_norm(grads, self.config.gradient_clip_norm)
             self.train_op = self.optimizer.apply_gradients(zip(grads, variables))
+
+    def run_batch(self, sess, noisy_sents_train, correct_sents_train,
+                  incorrect_sents_train, labels_train, incorrect_labels_train):
+        feed_dict = {
+            self.noisy_sent: noisy_sents_train,
+            self.correct_sent: correct_sents_train,
+            self.label: labels_train,
+            self.incorrect_sent: incorrect_sents_train,
+            self.incorrect_label: incorrect_labels_train,
+            self.dropout_keep: self.config.dropout_keep
+        }
+        fetch = [self.loss, self.noisy_question_final_state, self.correct_question_final_state]
+        loss, noisy_question_final_state, correct_question_final_state = sess.run(fetch, feed_dict)
+        accuracy = self.get_accuracy(noisy_question_final_state, correct_question_final_state)
+        return loss, accuracy

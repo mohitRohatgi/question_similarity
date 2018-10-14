@@ -11,3 +11,4 @@ class Config:
     vocab_size = 20
     num_hidden = 256
     lstm_layers = 3
+    dropout_keep = 1.0

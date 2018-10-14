@@ -29,15 +29,28 @@ def extract_label(label_strings):
     return processed_labels
 
 
+def get_incorrect_indices(indices, low, high):
+    incorrect_indices = []
+    for index in indices:
+        r = np.random.randint(low, high)
+        while r == index:
+            r = np.random.randint(low, high)
+        incorrect_indices.append(index)
+    return np.array(incorrect_indices)
+
+
 def get_batch_data(noisy_sents, correct_sents, labels, batch_size, random=True, start=0):
     if random:
         indices = np.random.randint(0, len(noisy_sents), batch_size)
+        incorrect_indices = get_incorrect_indices(indices, 0, len(noisy_sents))
     else:
         indices = range(start, min(start + batch_size, len(noisy_sents)))
+        incorrect_indices = get_incorrect_indices(indices, 0, len(noisy_sents))
     noisy_sents = np.array(noisy_sents)
     correct_sents = np.array(correct_sents)
     labels = np.array(labels)
-    return noisy_sents[indices], correct_sents[indices], labels[indices]
+    return noisy_sents[indices], correct_sents[indices], correct_sents[incorrect_indices],\
+           labels[indices], labels[incorrect_indices]
 
 
 def split_train_valid(noisy_sents, correct_sents, labels, split=0.8):

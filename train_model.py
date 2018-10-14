@@ -23,16 +23,20 @@ def train():
             for i in range(config.n_epoch):
                 for j in range(num_batches_per_epoch):
                     train_batch, valid_batch = batch_iterator.next()
-                    noisy_sents_train, correct_sents_train, labels_train = train_batch
-                    noisy_sents_valid, correct_sents_valid, labels_valid = valid_batch
-                    # loss, accuracy = model.run_batch(sess, noisy_sents_train, correct_sents_train, labels_train)
-                    #
-                    # print("epoch = ", i, " batch_num = ", j, " loss = ", loss, " accuracy = ", accuracy)
-                    #
-                    # if j % config.evaluate_every == 0:
-                    #     loss, accuracy = model.run_batch(sess, noisy_sents_train, correct_sents_train,
-                    #                                      labels_train, is_valid=True)
-                    #     print("epoch = ", i, " batch_num = ", j, " loss = ", loss, " accuracy = ", accuracy)
+                    noisy_sents_train, correct_sents_train, labels_train, incorrect_sents_train, incorrect_labels_train\
+                        = train_batch
+                    noisy_sents_valid, correct_sents_valid, labels_valid, incorrect_sents_valid, incorrect_labels_valid\
+                        = valid_batch
+                    loss, accuracy = model.run_batch(sess, noisy_sents_train, correct_sents_train,
+                                                     incorrect_sents_train, labels_train, incorrect_labels_train)
+
+                    print("epoch = ", i, " batch_num = ", j, " loss = ", loss, " accuracy = ", accuracy)
+
+                    if j % config.evaluate_every == 0:
+                        loss, accuracy = model.run_batch(sess, noisy_sents_valid, correct_sents_valid,
+                                                         labels_valid, incorrect_sents_valid,
+                                                         incorrect_labels_valid)
+                        print("epoch = ", i, " batch_num = ", j, " loss = ", loss, " accuracy = ", accuracy)
 
 
 if __name__ == '__main__':
