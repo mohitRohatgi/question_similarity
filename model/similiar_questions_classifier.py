@@ -125,8 +125,8 @@ class SimilarQuestionClassifier:
     def add_loss(self):
         # negative sampling loss
         delta = 1e-7
-        self.loss = tf.reduce_mean(-tf.log(self.correct_question_score + delta) +
-                                   tf.log(self.incorrect_question_score + delta))
+        self.loss = tf.reduce_sum(tf.maximum(-tf.log(self.correct_question_score + delta) +
+                                  tf.log(self.incorrect_question_score + delta), 0))
 
     # noisy_final_states = (batch_size, num_hidden)
     # correct_final_state = (batch_size, num_hidden)
@@ -138,7 +138,7 @@ class SimilarQuestionClassifier:
             dot_prod /= np.sqrt(np.sum(np.square(noisy_final_state)))
             if index == np.argmax(dot_prod):
                 correct_predictions[index] = 1
-        return correct_predictions
+        return np.mean(correct_predictions)
 
     def add_train_op(self):
         with tf.variable_scope("training"):
@@ -156,7 +156,8 @@ class SimilarQuestionClassifier:
             self.incorrect_label: incorrect_labels_train,
             self.dropout_keep: self.config.dropout_keep
         }
-        fetch = [self.loss, self.noisy_question_final_state, self.correct_question_final_state]
-        loss, noisy_question_final_state, correct_question_final_state = sess.run(fetch, feed_dict)
+        fetch = [self.loss, self.noisy_question_final_state, self.correct_question_final_state,
+                 self.correct_question_score, self.incorrect_question_score]
+        loss, noisy_question_final_state, correct_question_final_state, cor, incor = sess.run(fetch, feed_dict)
         accuracy = self.get_accuracy(noisy_question_final_state, correct_question_final_state)
         return loss, accuracy

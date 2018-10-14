@@ -103,7 +103,7 @@ def create_incorrect_correct_label_data(question_label_data, incorrect_correct_s
     incorrect_correct_sent_data = ""
     for line in question_label_data:
         question, label_string = line.split("\t\t")
-        noisy_questions = noise_maker(question, 0.8, 10)
+        noisy_questions = noise_maker(question, 0.8, 3)
         for noisy_question in noisy_questions:
             incorrect_correct_sent_data += noisy_question.strip() + " \t\t" + question.strip() + "\t\t" + label_string.strip() + "\n"
     with open(incorrect_correct_sent_path, 'wb') as incorrect_correct_sent_file:

@@ -1,9 +1,15 @@
 import os
 import tensorflow as tf
+import numpy as np
 
 from config.config import Config
 from model.similiar_questions_classifier import SimilarQuestionClassifier
 from utils.preprocessor import get_batch_data_iterator
+
+
+def load_embed_matrix():
+    embedding_matrix_path = os.path.join(os.getcwd(), 'resources', 'embedding_matrix.npy')
+    return np.squeeze(np.load(embedding_matrix_path))
 
 
 def train():
@@ -17,13 +23,16 @@ def train():
     num_batches_per_epoch = int(len(incorrect_correct_label_sent_data) * config.train_valid_split / config.batch_size)
     batch_iterator = get_batch_data_iterator(config.n_epoch, incorrect_correct_label_sent_data, config.batch_size,
                                              config.train_valid_split)
+
+    embedding_matrix = load_embed_matrix()
     with tf.Graph().as_default():
         with tf.Session() as sess:
             model = SimilarQuestionClassifier()
+            model.initialise(sess, embedding_matrix)
             for i in range(config.n_epoch):
                 for j in range(num_batches_per_epoch):
                     train_batch, valid_batch = batch_iterator.next()
-                    noisy_sents_train, correct_sents_train, labels_train, incorrect_sents_train, incorrect_labels_train\
+                    noisy_sents_train, correct_sents_train, incorrect_sents_train, labels_train, incorrect_labels_train\
                         = train_batch
                     noisy_sents_valid, correct_sents_valid, labels_valid, incorrect_sents_valid, incorrect_labels_valid\
                         = valid_batch

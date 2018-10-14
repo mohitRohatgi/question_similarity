@@ -3,3 +3,4 @@ data/*
 *.pyc
 saved_models/tf_model_graphs/*
 .DS_Store
+resources/*
