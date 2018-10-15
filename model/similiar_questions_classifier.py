@@ -9,7 +9,6 @@ class SimilarQuestionClassifier:
         self.config = Config()
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.config.learning_rate)
         self.add_model()
-        self.saver = tf.train.Saver()
 
     def initialise(self, sess, embed_matrix):
         sess.run(tf.global_variables_initializer())

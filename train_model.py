@@ -15,6 +15,7 @@ def load_embed_matrix():
 def train():
     config = Config()
     data_dir = os.path.join(os.getcwd(), 'data')
+    save_path = os.path.join(os.getcwd(), 'saved_models', 'tf_model_graphs', 'model')
     incorrect_correct_label_sent_path = os.path.join(data_dir, 'processed_data',
                                                      'incorrect_correct_label_sent_path.txt')
     with open(incorrect_correct_label_sent_path, 'rb') as f:
@@ -28,6 +29,7 @@ def train():
     with tf.Graph().as_default():
         with tf.Session() as sess:
             model = SimilarQuestionClassifier()
+            saver = tf.train.Saver()
             model.initialise(sess, embedding_matrix)
             for i in range(config.n_epoch):
                 avg_loss = 0.0
@@ -52,6 +54,7 @@ def train():
                         print("epoch = ", i, " batch_num = ", j, " valid_loss = ", loss, " valid_accuracy = ", accuracy)
                 print("epoch = ", i, " avg_loss = ", avg_loss / num_batches_per_epoch,
                       " avg_accuracy = ", avg_accuracy / num_batches_per_epoch)
+            saver.save(sess, save_path)
 
 
 if __name__ == '__main__':
