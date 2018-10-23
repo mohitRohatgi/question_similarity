@@ -50,7 +50,7 @@ def train():
                     if j % config.evaluate_every == 0:
                         loss, accuracy = model.run_batch(sess, noisy_sents_valid, correct_sents_valid,
                                                          labels_valid, incorrect_sents_valid,
-                                                         incorrect_labels_valid)
+                                                         incorrect_labels_valid, is_train=False)
                         print("epoch = ", i, " batch_num = ", j, " valid_loss = ", loss, " valid_accuracy = ", accuracy)
                 print("epoch = ", i, " avg_loss = ", avg_loss / num_batches_per_epoch,
                       " avg_accuracy = ", avg_accuracy / num_batches_per_epoch)

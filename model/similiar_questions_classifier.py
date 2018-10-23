@@ -123,7 +123,7 @@ class SimilarQuestionClassifier:
 
     def add_loss(self):
         # negative sampling loss
-        delta = 1e-7
+        delta = 1e-12
         self.loss = tf.reduce_sum(tf.maximum(-tf.log(self.correct_question_score + delta) +
                                   tf.log(self.incorrect_question_score + delta), 0))
 
@@ -132,7 +132,7 @@ class SimilarQuestionClassifier:
     def get_accuracy(self, noisy_final_states, correct_final_states):
         correct_predictions = np.zeros(len(noisy_final_states))
         for index, noisy_final_state in enumerate(noisy_final_states):
-            dot_prod = np.sum(noisy_final_state * noisy_final_states, axis=-1)
+            dot_prod = np.sum(noisy_final_state * correct_final_states, axis=-1)
             dot_prod /= np.sqrt(np.sum(np.square(correct_final_states), axis=-1))
             dot_prod /= np.sqrt(np.sum(np.square(noisy_final_state)))
             if index == np.argmax(dot_prod):
@@ -146,7 +146,7 @@ class SimilarQuestionClassifier:
             self.train_op = self.optimizer.apply_gradients(zip(grads, variables))
 
     def run_batch(self, sess, noisy_sents_train, correct_sents_train,
-                  incorrect_sents_train, labels_train, incorrect_labels_train):
+                  incorrect_sents_train, labels_train, incorrect_labels_train, is_train=True):
         feed_dict = {
             self.noisy_sent: noisy_sents_train,
             self.correct_sent: correct_sents_train,
@@ -157,6 +157,10 @@ class SimilarQuestionClassifier:
         }
         fetch = [self.loss, self.noisy_question_final_state, self.correct_question_final_state,
                  self.correct_question_score, self.incorrect_question_score]
-        loss, noisy_question_final_state, correct_question_final_state, cor, incor = sess.run(fetch, feed_dict)
+        if is_train:
+            fetch.append(self.train_op)
+            loss, noisy_question_final_state, correct_question_final_state, cor, incor, _ = sess.run(fetch, feed_dict)
+        else:
+            loss, noisy_question_final_state, correct_question_final_state, cor, incor = sess.run(fetch, feed_dict)
         accuracy = self.get_accuracy(noisy_question_final_state, correct_question_final_state)
         return loss, accuracy
