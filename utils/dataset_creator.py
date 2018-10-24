@@ -3,10 +3,12 @@ import json
 import numpy as np
 import pickle
 import re
+from utils.preprocessor import get_one_hot, load_vocab
 
 # format of the dataset assumed is noisy sentence \t\t correct sentence \t\t label \n
 # label -> label instance \t label instance \t ....
 # label instance -> entity space entity-instance
+
 letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
            'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ]
 
@@ -138,6 +140,30 @@ def create_entities_dict(entities_dir, entities_instance2label_path, entity_idx2
         pickle.dump(entity_idx2entity, entity_idx_file)
         entity_idx_file.close()
     return entities_instance2label, entity_idx2entity
+
+
+def get_question_vocabs(question_label_path):
+    with open(question_label_path, 'r') as f:
+        question_labels = f.readlines()
+        f.close()
+    question_idx2label = dict()
+    label2_question_indices = dict()
+    question2question_idx = dict()
+    question_idx2question = dict()
+    sents_train = []
+    char_to_int = load_vocab()
+    for idx, question_label in enumerate(question_labels):
+        question, label = question_label.split("\t\t")
+        sents_train.append(get_one_hot(question, char_to_int))
+        question_idx2label[idx] = label
+        question2question_idx[question] = idx
+        question_idx2question[idx] = question
+        if label in label2_question_indices:
+            label2_question_indices[label].append(idx)
+        else:
+            label2_question_indices[label] = [idx]
+    sents_train = np.array(sents_train)
+    return question_idx2label, question2question_idx, question_idx2question, label2_question_indices, sents_train
 
 
 def main():

@@ -32,7 +32,7 @@ class SimilarQuestionClassifier:
                                              name='correct_sent')
         self.incorrect_label = tf.placeholder(dtype=tf.int32, shape=(None, self.config.label_seq_length, 2))
         self.embedding_placeholder = tf.placeholder(dtype=tf.float32, shape=(self.config.vocab_size,
-                                                                           self.config.embeddings_dim))
+                                                                             self.config.embeddings_dim))
         self.dropout_keep = tf.placeholder(dtype=tf.float32, shape=(), name='dropout_keep')
 
     def assemble_model(self):
@@ -86,6 +86,8 @@ class SimilarQuestionClassifier:
             self.noisy_question_final_state = self.get_score_from_question_encoder('noisy_question',
                                                                                    self.noisy_sent_vector,
                                                                                    self.ner_output)
+            # self.noisy_question_final_state = tf.reshape(self.noisy_question_final_state,
+            #                                              tf.shape(self.noisy_question_final_state), 'sents_rep')
             correct_label = tf.cast(self.label, dtype=tf.float32)
             self.correct_question_final_state = self.get_score_from_question_encoder('correct_question',
                                                                                      self.correct_sent_vector,
@@ -145,8 +147,8 @@ class SimilarQuestionClassifier:
             grads, _ = tf.clip_by_global_norm(grads, self.config.gradient_clip_norm)
             self.train_op = self.optimizer.apply_gradients(zip(grads, variables))
 
-    def run_batch(self, sess, noisy_sents_train, correct_sents_train,
-                  incorrect_sents_train, labels_train, incorrect_labels_train, is_train=True):
+    def run_batch(self, sess, noisy_sents_train, correct_sents_train, incorrect_sents_train,
+                  labels_train, incorrect_labels_train, is_train=True):
         feed_dict = {
             self.noisy_sent: noisy_sents_train,
             self.correct_sent: correct_sents_train,
@@ -164,3 +166,11 @@ class SimilarQuestionClassifier:
             loss, noisy_question_final_state, correct_question_final_state, cor, incor = sess.run(fetch, feed_dict)
         accuracy = self.get_accuracy(noisy_question_final_state, correct_question_final_state)
         return loss, accuracy
+
+    def get_rep(self, sess, sents_train):
+        feed_dict = {
+            self.noisy_sent: sents_train,
+            self.dropout_keep: 1.0
+        }
+        fetch = [self.noisy_question_final_state]
+        return sess.run(fetch, feed_dict)[0]
